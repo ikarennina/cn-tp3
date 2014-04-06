@@ -48,21 +48,6 @@ def calc_hits(graph, name):
         pickle.dump(hits, out_file)
         print 'Dumped hits to file %s' % path
 
-def unique_values(my_dict):
-    unique = {}
-    seen = {}
-    for key, value in my_dict.iteritems():
-        if value in seen:
-            other_key = seen[value]
-            if other_key > key:
-                del unique[other_key]
-                unique[key] = value
-                seen[value] = key
-        else:
-            unique[key] = value
-            seen[value] = key
-    return unique
-
 
 def main():
     options = get_cl_options()
@@ -74,36 +59,46 @@ def main():
         path = _DATA_DIR + '/' + name
         with open(path + '_pagerank.pickle') as in_file:
             pagerank = pickle.load(in_file)
-            pagerank = unique_values(pagerank)
             print 'Loaded PageRank data from file %s' % path
             pagerank_rank = [int(x) for x, _ in Counter(pagerank).most_common()]
         with open(path + '_hits.pickle') as in_file:
             hubs, auth = pickle.load(in_file)
-            hubs = unique_values(hubs)
-            auth = unique_values(auth)
-            print 'Loaded Hits data from file %s' % path
+            print 'Loaded HITS data from file %s' % path
             hubs_rank = [int(x) for x, _ in Counter(hubs).most_common()]
             auth_rank = [int(x) for x, _ in Counter(auth).most_common()]
-        min_len = min(len(pagerank_rank), len(hubs_rank))
-        corr, _ = scipy.stats.kendalltau(pagerank_rank[:min_len],
-                hubs_rank[:min_len])   
+        
+        corr, _ = scipy.stats.kendalltau(pagerank_rank, hubs_rank)   
         print ('Kendall tau rank correlation between PageRank and Hubs Rank: %f'
                % corr)
-        min_len = min(len(pagerank_rank), len(auth_rank))
-        corr, _ = scipy.stats.kendalltau(pagerank_rank[:min_len],
-                auth_rank[:min_len])      
+        corr, _ = scipy.stats.kendalltau(pagerank_rank, auth_rank)      
         print ('Kendall tau rank correlation between PageRank and Authorities Rank: %f'
                % corr)
+        for ind, node in enumerate(pagerank_rank[:20]):
+            print '%d & %d & %d \\\\' % (ind+1, hubs_rank.index(node)+1,
+                   auth_rank.index(node)+1)
+        print ''
 
-        pagerank_ties = Counter(pagerank.values())
-        print 'Unique values: %d out of %d' % (len(pagerank_ties),
-                len(pagerank))
-        auth_ties = Counter(auth.values())
-        print 'Unique values: %d out of %d' % (len(auth_ties),
-                len(auth))
-        hubs_ties = Counter(hubs.values())
-        print 'Unique values: %d out of %d' % (len(hubs_ties),
-                len(hubs))
+        for ind, node in enumerate(hubs_rank[:20]):
+            print '%d & %d\\\\' % (ind+1, pagerank_rank.index(node)+1)
+        print ''
+        
+        for ind, node in enumerate(auth_rank[:20]):
+            print '%d & %d\\\\' % (ind+1, pagerank_rank.index(node)+1)
+        print ''
+
+        corr, _ = scipy.stats.kendalltau(pagerank_rank[:200], auth_rank[:200])      
+        print ('Kendall tau rank correlation between PageRank and Authorities Rank: %f'
+               % corr)
+        
+        #pagerank_ties = Counter(pagerank.values())
+        #print 'Unique values: %d out of %d' % (len(pagerank_ties),
+        #        len(pagerank))
+        #auth_ties = Counter(auth.values())
+        #print 'Unique values: %d out of %d' % (len(auth_ties),
+        #        len(auth))
+        #hubs_ties = Counter(hubs.values())
+        #print 'Unique values: %d out of %d' % (len(hubs_ties),
+        #        len(hubs))
         
 
         
